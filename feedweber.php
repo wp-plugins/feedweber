@@ -5,7 +5,7 @@ Plugin URI: http://www.installedforyou.com/feedweber/
 Description: Register readers for both your AWeber autoresponder and FeedBurner with one click
 Version: 0.1
 Author: Jeff Rose
-Author URI: http://www.installedforyou.com
+Author URI: http://www.installedforyou.com/
 */
 
 /*  Copyright 2009  Jeff Rose  (email : plugins@installedforyou.com)
