@@ -35,4 +35,5 @@ An answer to that question.
 
 = 0.1 =
 * Plugin written and released.
+* Minor tweak to fix a bug. Thanks for the feedback.
 
