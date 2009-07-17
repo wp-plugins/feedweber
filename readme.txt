@@ -4,7 +4,7 @@ Donate link: http://www.installedforyou.com/wordpress/feedweber-plugin/
 Tags: autoresponder, email
 Requires at least: 2.8
 Tested up to: 2.8
-Stable tag: 0.1
+Stable tag: 0.2
 
 Allow your users to subscribe to your FeedBurner Feed and AWeber auto-responder in one form.
 
@@ -33,7 +33,8 @@ An answer to that question.
 
 == Changelog ==
 
-= 0.1 =
+= 0.2 =
 * Plugin written and released.
+
 * Minor tweak to fix a bug. Thanks for the feedback.
 
