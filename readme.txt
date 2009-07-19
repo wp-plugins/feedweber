@@ -33,8 +33,9 @@ An answer to that question.
 
 == Changelog ==
 
-= 0.2 =
+= 0.1 =
 * Plugin written and released.
 
+= 0.2 =
 * Minor tweak to fix a bug. Thanks for the feedback.
 
