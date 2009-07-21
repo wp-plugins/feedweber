@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Feedweber
-Plugin URI: http://www.installedforyou.com/feedweber/
+Plugin URI: http://www.installedforyou.com/wordpress/feedweber-plugin/
 Description: Register readers for both your AWeber autoresponder and FeedBurner with one click
-Version: 0.1
+Version: 0.3
 Author: Jeff Rose
 Author URI: http://www.installedforyou.com
 */
@@ -25,7 +25,7 @@ Author URI: http://www.installedforyou.com
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define ('FW_VNUM', '0.1');
+define ('FW_VNUM', '0.3');
 
 define('FW_PLUGPATH',get_option('siteurl').'/wp-content/plugins/'.plugin_basename(dirname(__FILE__)).'/');
 
@@ -52,12 +52,32 @@ define('FW_PLUGPATH',get_option('siteurl').'/wp-content/plugins/'.plugin_basenam
                     return $old_instance;
             }
 
-            $instance['title'] = $new_instance['title'];
-            $instance['fwf_feedburnerURI'] = $new_instance['fwf_feedburnerURI'];
-            $instance['fwf_aweberemail'] = $new_instance['fwf_aweberemail'];
-            $instance['fwf_beforetext'] = $new_instance['fwf_beforetext'];
-            $instance['fwf_aftertext'] = $new_instance['fwf_aftertext'];
+            /*
+             * Save WIDGET title, feedburner URI and AWeber email field
+             */
+            $instance['title'] = wp_filter_post_kses($new_instance['title']);
+            $instance['fwf_feedburnerURI'] = wp_filter_post_kses($new_instance['fwf_feedburnerURI']);
+            $instance['fwf_aweberemail'] = wp_filter_post_kses($new_instance['fwf_aweberemail']);
 
+            /*
+             * Updated to strip html for users who aren't allowed to enter HTML
+             * Although, I'm not sure how they got here.
+             */
+            if ( current_user_can('unfiltered_html') ) {
+                $instance['fwf_beforetext'] =  $new_instance['fwf_beforetext'];
+                $instance['fwf_aftertext'] = $new_instance['fwf_aftertext'];
+            } else {
+                $instance['fwf_beforetext'] = wp_filter_post_kses( $new_instance['fwf_beforetext'] );
+                $instance['fwf_aftertext'] = wp_filter_post_kses( $new_instance['fwf_aftertext'] );
+            }
+
+            /*
+             * Save form and field classes. Since these shouldn't contain HTML
+             * let's clean the up just in case.
+             */
+                $instance['fwf_formclass'] = wp_filter_post_kses( $new_instance['fwf_formclass'] );
+                $instance['fwf_fieldclass'] = wp_filter_post_kses( $new_instance['fwf_fieldclass'] );
+            
             return $instance;
         }
 
@@ -65,25 +85,33 @@ define('FW_PLUGPATH',get_option('siteurl').'/wp-content/plugins/'.plugin_basenam
         function widget( $args, $instance ) {
             extract ($args);
 
+            $widgetTitle = $instance['title'];
             $feedburnerURI = $instance['fwf_feedburnerURI'];
             $aweberemail = $instance['fwf_aweberemail'];
             $fw_beforetext = $instance['fwf_beforetext'];
             $fw_aftertext = $instance['fwf_aftertext'];
+            $fw_formclass = $instance['fwf_formclass'];
+            $fw_fieldclass = $instance['fwf_fieldclass'];
 
-            echo '<h2 class="widgettitle">' . $instance['title'] . '</h2>';
-            echo $before_widget;
-            echo '<form style="border:1px solid #ccc;padding:3px;text-align:left;" action="http://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="emailAweber(\'' . $aweberemail .'\');window.open(\'http://feedburner.google.com/fb/a/mailverify?uri='.$feedburnerURI.'\', \'popupwindow\', \'scrollbars=yes,width=550,height=520\');return true">';
-            echo '<p>' . $fw_beforetext . '</p>';
-            echo '    <p>Enter your email address:</p>';
-            echo '    <p><input type="text" style="width:140px" name="email" id="email"/></p>';
-            echo '    <input type="hidden" value="' . $feedburnerURI . '" name="uri"/>';
-            echo '    <input type="hidden" name="loc" value="en_US"/>';
-            echo '    <input type="submit" value="Subscribe" />';
-            echo '<p>' . $fw_aftertext . '</p>';
-            echo '</form>            ';
-            echo '<div id=resultarea>';
-            echo '</div>';
-
+?>
+            <?php if (!is_null($instance['title'])) { ?>
+            <h2 class="widgettitle"><?php _e( $widgetTitle ); ?></h2>
+            <?php } ?>
+            <?php _e($before_widget); ?>
+            <form<?php if (!is_null($fw_formclass) && !($fw_formclass=="")) _e(' class="' . $fw_formclass .'"') ; ?> style="padding:3px;text-align:left;" action="http://feedburner.google.com/fb/a/mailverify" method="post" target="popupwindow" onsubmit="emailAweber('<?php _e($aweberemail); ?>'); window.open('http://feedburner.google.com/fb/a/mailverify?uri=<?php _e($feedburnerURI); ?>', 'popupwindow', 'scrollbars=yes,width=550,height=520'); return true;">
+            <p><?php _e($fw_beforetext); ?></p>
+            <p>Enter your email address:</p>
+            <p>
+                <input type="text" style="width:140px;" name="email" id="email" <?php if (!is_null($fw_fieldclass)) _e(' class="' . $fw_fieldclass .'"') ; ?>/>
+            </p>
+            <input type="hidden" value="<?php _e($feedburnerURI); ?>" name="uri"/>
+            <input type="hidden" name="loc" value="en_US"/>
+            <input type="submit" value="Subscribe" />
+            <p><?php _e($fw_aftertext); ?></p>
+            </form>
+            <!-- <div id=resultarea>
+            </div> -->
+<?php
             echo $after_widget;
         }
 
@@ -93,25 +121,28 @@ define('FW_PLUGPATH',get_option('siteurl').'/wp-content/plugins/'.plugin_basenam
             $defaults = array( 'title' => 'FeedWeber', 'fwf_feedburnerURI' => 'FeedburnerURI', 'fwf_aweberemail' => 'AWeber Listname' );
             $instance = wp_parse_args( (array) $instance, $defaults );
 
-            $feedburnerURI = $instance['fwf_feedburnerURI'];
-            $aweberemail = $instance['fwf_aweberemail'];
-            $fwf_beforetext = $instance['fwf_beforetext'];
-            $fwf_aftertext = $instance['fwf_aftertext'];
+            //$feedburnerURI = $instance['fwf_feedburnerURI'];
+            //$aweberemail = $instance['fwf_aweberemail'];
+            //$fwf_beforetext = $instance['fwf_beforetext'];
+            //$fwf_aftertext = $instance['fwf_aftertext'];
 
 ?>
 
-            <label for="<?php echo $this->get_field_id( 'title' ); ?>"><b>Title:</b></label>
+            <label for="<?php echo $this->get_field_id( 'title' ); ?>"><b>Title:</b> (optional)</label>
 			<input id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" value="<?php echo $instance['title']; ?>" style="width:95%;" />
             <label for="<?php echo $this->get_field_id( 'fwf_beforetext' ); ?>"><b>Text before form:</b></label>
-			<input id="<?php echo $this->get_field_id( 'fwf_beforetext' ); ?>" name="<?php echo $this->get_field_name( 'fwf_beforetext' ); ?>" value="<?php echo $instance['fwf_beforetext']; ?>" style="width:95%;" />
+			<textarea id="<?php echo $this->get_field_id( 'fwf_beforetext' ); ?>" name="<?php echo $this->get_field_name( 'fwf_beforetext' ); ?>" style="width:95%;" ><?php echo $instance['fwf_beforetext']; ?></textarea>
 
             <label for="<?php echo $this->get_field_id( 'fwf_feedburnerURI' ); ?>"><b>Feedburner Feed:</b></label>
 			<input id="<?php echo $this->get_field_id( 'fwf_feedburnerURI' ); ?>" name="<?php echo $this->get_field_name( 'fwf_feedburnerURI' ); ?>" value="<?php echo $instance['fwf_feedburnerURI']; ?>" style="width:95%;" />
             <label for="<?php echo $this->get_field_id( 'fwf_aweberemail' ); ?>"><b>AWeber Listname:</b></label>
 			<input id="<?php echo $this->get_field_id( 'fwf_aweberemail' ); ?>" name="<?php echo $this->get_field_name( 'fwf_aweberemail' ); ?>" value="<?php echo $instance['fwf_aweberemail']; ?>" style="width:95%;" />
             <label for="<?php echo $this->get_field_id( 'fwf_aftertext' ); ?>"><b>Text after form:</b></label>
-			<input id="<?php echo $this->get_field_id( 'fwf_aftertext' ); ?>" name="<?php echo $this->get_field_name( 'fwf_aftertext' ); ?>" value="<?php echo $instance['fwf_aftertext']; ?>" style="width:95%;" />
-
+			<textarea id="<?php echo $this->get_field_id( 'fwf_aftertext' ); ?>" name="<?php echo $this->get_field_name( 'fwf_aftertext' ); ?>" style="width:95%;" ><?php echo htmlspecialchars($instance['fwf_aftertext']); ?></textarea>
+            <label for="<?php echo $this->get_field_id( 'fwf_formclass' ); ?>"><b>Form class name:</b> (optional)</label>
+			<input id="<?php echo $this->get_field_id( 'fwf_formclass' ); ?>" name="<?php echo $this->get_field_name( 'fwf_formclass' ); ?>" value="<?php echo $instance['fwf_formclass']; ?>" style="width:95%;" />
+            <label for="<?php echo $this->get_field_id( 'fwf_fieldclass' ); ?>"><b>Field class name:</b> (optional)</label>
+			<input id="<?php echo $this->get_field_id( 'fwf_fieldclass' ); ?>" name="<?php echo $this->get_field_name( 'fwf_fieldclass' ); ?>" value="<?php echo $instance['fwf_fieldclass']; ?>" style="width:95%;" />
 <?php 
         }
         

@@ -17,4 +17,4 @@ $toaddy = $_POST['toaddy'] . "@aweber.com";
 if (!wp_mail( $toaddy, 'Subscribe', 'Subscribe', 'From: '.$email))
 {
     die('Mail not sent');
-} 
+}
